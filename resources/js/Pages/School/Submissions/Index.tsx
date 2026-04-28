@@ -1,4 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { issueLabel } from '@/lib/submissionIssueLabels';
 import { PageProps } from '@/types';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import {
@@ -396,7 +397,7 @@ export default function SchoolSubmissionPage({ submissions, school }: Submission
                                                             <div className="portal-chip-row">
                                                                 {Object.entries(record.parsed_summary?.validation?.issue_counts ?? {}).map(([issueCode, count]) => (
                                                                     <Tag key={`${record.id}-${issueCode}`} color="red">
-                                                                        {issueCode} ({count})
+                                                                        {issueLabel(issueCode)} ({count})
                                                                     </Tag>
                                                                 ))}
                                                             </div>

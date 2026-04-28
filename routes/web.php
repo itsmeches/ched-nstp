@@ -38,6 +38,7 @@ Route::middleware(['auth', 'verified', 'role:admin,superadmin'])->prefix('admin'
     Route::patch('/school-approvals/{user}/approve', [SchoolApprovalController::class, 'approve'])->name('school-approvals.approve');
     Route::patch('/school-approvals/{user}/reject', [SchoolApprovalController::class, 'reject'])->name('school-approvals.reject');
     Route::get('/submissions', [SubmissionReviewController::class, 'index'])->name('submissions.index');
+    Route::get('/submissions/{submission}/parser-report', [SubmissionReviewController::class, 'downloadParserReport'])->name('submissions.report');
 });
 
 Route::middleware(['auth', 'verified', 'role:admin,superadmin,ched_staff'])->prefix('ched')->name('ched.')->group(function () {
@@ -45,6 +46,7 @@ Route::middleware(['auth', 'verified', 'role:admin,superadmin,ched_staff'])->pre
     Route::get('/dashboard/metrics', [ChedDashboardController::class, 'metrics'])->name('dashboard.metrics');
     Route::get('/submissions', [ChedSubmissionReviewController::class, 'index'])->name('submissions.index');
     Route::patch('/submissions/{submission}/transition', [ChedSubmissionReviewController::class, 'transition'])->name('submissions.transition');
+    Route::get('/submissions/{submission}/parser-report', [ChedSubmissionReviewController::class, 'downloadParserReport'])->name('submissions.report');
 });
 
 Route::middleware(['auth', 'verified', 'role:school'])->prefix('school')->name('school.')->group(function () {

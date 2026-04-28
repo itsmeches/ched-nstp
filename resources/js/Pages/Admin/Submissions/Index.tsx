@@ -1,4 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { issueLabel } from '@/lib/submissionIssueLabels';
 import { PageProps } from '@/types';
 import { Head, router, usePage } from '@inertiajs/react';
 import { Alert, Button, Card, Col, Descriptions, Empty, Input, Row, Select, Space, Table, Tag, Typography } from 'antd';
@@ -26,6 +27,7 @@ type SubmissionRow = {
             invalid_count: number;
             fuzzy_match_count: number;
             evaluated_count: number;
+            issue_counts?: Record<string, number>;
         };
         files?: Record<
             string,
@@ -342,6 +344,16 @@ export default function SubmissionReviewPage({ submissions, selectedSubmission, 
                                             <Tag>{selectedOverall?.skipped_rows ?? 0} skipped</Tag>
                                         </div>
 
+                                        {Object.keys(selectedValidation?.issue_counts ?? {}).length > 0 ? (
+                                            <div className="portal-chip-row">
+                                                {Object.entries(selectedValidation?.issue_counts ?? {}).map(([issueCode, count]) => (
+                                                    <Tag key={`${selectedSubmission.id}-${issueCode}`} color="red">
+                                                        {issueLabel(issueCode)} ({count})
+                                                    </Tag>
+                                                ))}
+                                            </div>
+                                        ) : null}
+
                                         {Object.entries(selectedSubmission.parsed_summary?.files ?? {}).map(
                                             ([fileKey, summary]) => (
                                                 <Card key={fileKey} size="small" className="!border-slate-200">
@@ -384,6 +396,12 @@ export default function SubmissionReviewPage({ submissions, selectedSubmission, 
                                                         }
                                                     >
                                                         Open CHED Review Queue
+                                                    </Button>
+                                                    <Button href={route('admin.submissions.report', { submission: selectedSubmission.id })}>
+                                                        Download Parser Report
+                                                    </Button>
+                                                    <Button href={route('admin.submissions.report', { submission: selectedSubmission.id, invalid_only: 1 })}>
+                                                        Download Invalid Report
                                                     </Button>
                                                 </Space>
                                             )}
@@ -474,7 +492,7 @@ export default function SubmissionReviewPage({ submissions, selectedSubmission, 
                                                             <div className="portal-issue-stack">
                                                                 {validation.issues.map((issue, index) => (
                                                                     <Space key={`${row.id}-${issue.code ?? 'issue'}-${index}`} direction="vertical" size={0}>
-                                                                            <Tag color={issueColor(issue.code)}>{issue.code ?? 'issue'}</Tag>
+                                                                            <Tag color={issueColor(issue.code)}>{issueLabel(issue.code)}</Tag>
                                                                         {issue.matches && issue.matches.length > 0 ? (
                                                                             <Typography.Text className="!text-slate-500">
                                                                                 Candidates:{' '}

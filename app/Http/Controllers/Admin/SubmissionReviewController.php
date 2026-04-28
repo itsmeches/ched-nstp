@@ -4,12 +4,18 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Submission;
+use App\Services\Imports\SubmissionParserReportService;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class SubmissionReviewController extends Controller
 {
+    public function __construct(private readonly SubmissionParserReportService $submissionParserReportService)
+    {
+    }
+
     public function index(Request $request): Response
     {
         $filters = [
@@ -79,5 +85,10 @@ class SubmissionReviewController extends Controller
             'selectedSubmission' => $selectedSubmission,
             'filters' => $filters,
         ]);
+    }
+
+    public function downloadParserReport(Request $request, Submission $submission): StreamedResponse
+    {
+        return $this->submissionParserReportService->download($submission, $request->boolean('invalid_only'));
     }
 }

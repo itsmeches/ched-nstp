@@ -5,11 +5,13 @@ namespace App\Http\Controllers\Ched;
 use App\Http\Controllers\Controller;
 use App\Models\Submission;
 use App\Services\Audit\AuditLogService;
+use App\Services\Imports\SubmissionParserReportService;
 use App\Services\Serials\GenerateSerialNumberService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -18,6 +20,7 @@ class SubmissionReviewController extends Controller
     public function __construct(
         private readonly AuditLogService $auditLogService,
         private readonly GenerateSerialNumberService $generateSerialNumberService,
+        private readonly SubmissionParserReportService $submissionParserReportService,
     ) {
     }
 
@@ -29,6 +32,8 @@ class SubmissionReviewController extends Controller
             'school' => $request->string('school')->toString(),
             'semester' => $request->string('semester')->toString(),
             'status' => $request->string('status')->toString(),
+            'validation' => $request->string('validation')->toString(),
+            'issue_code' => $request->string('issue_code')->toString(),
             'per_page' => max(5, min(50, $request->integer('per_page', 8))),
         ];
 
@@ -53,6 +58,16 @@ class SubmissionReviewController extends Controller
 
         if (in_array($filters['status'], $reviewableStatuses, true)) {
             $submissionQuery->where('status', $filters['status']);
+        }
+
+        if ($filters['validation'] === 'invalid') {
+            $submissionQuery->whereHas('validationResults', fn ($query) => $query->where('status', 'invalid'));
+        }
+
+        if ($filters['issue_code'] !== '') {
+            $submissionQuery->whereHas('validationResults', function ($query) use ($filters) {
+                $query->where('issues', 'like', '%"code":"'.$filters['issue_code'].'"%');
+            });
         }
 
         $submissions = $submissionQuery
@@ -93,7 +108,21 @@ class SubmissionReviewController extends Controller
             'submissions' => $submissions,
             'selectedSubmission' => $selectedSubmission,
             'filters' => $filters,
+            'issueCodeOptions' => [
+                'missing_nstp_1',
+                'missing_nstp_2',
+                'missing_form_2b',
+                'duplicate_student',
+                'name_mismatch_possible',
+                'transferee_flag_required',
+                'transferee_proof_required',
+            ],
         ]);
+    }
+
+    public function downloadParserReport(Request $request, Submission $submission): StreamedResponse
+    {
+        return $this->submissionParserReportService->download($submission, $request->boolean('invalid_only'));
     }
 
     public function transition(Request $request, Submission $submission): RedirectResponse

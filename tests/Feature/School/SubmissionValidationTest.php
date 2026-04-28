@@ -194,8 +194,8 @@ class SubmissionValidationTest extends TestCase
 
         $downloadResponse->assertOk();
         $downloadResponse->assertDownload(sprintf('parser-report-%s-%s.csv', $submission->id, '2026-summer'));
-        $this->assertStringContainsString('"Report Type","Source File","Row Number","Student Number","Full Name",Status,"Issue Code",Message', $downloadResponse->streamedContent());
-        $this->assertStringContainsString('validation,nstp_1_enrollment,1,2026-9201,"SANTOS, MARIA LOPEZ",invalid,missing_nstp_2,"Student was not found in NSTP 2."', $downloadResponse->streamedContent());
+        $this->assertStringContainsString('"Report Type","Source File","Row Number","Student Number","Full Name",Status,"Issue Code",Label,Message', $downloadResponse->streamedContent());
+        $this->assertStringContainsString('validation,nstp_1_enrollment,1,2026-9201,"SANTOS, MARIA LOPEZ",invalid,missing_nstp_2,"Missing NSTP 2","Student was not found in NSTP 2."', $downloadResponse->streamedContent());
     }
 
     /**

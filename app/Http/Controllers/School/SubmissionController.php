@@ -6,9 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Submission;
 use App\Services\Audit\AuditLogService;
 use App\Services\Imports\SubmissionImportService;
+use App\Services\Imports\SubmissionParserReportService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -24,6 +24,7 @@ class SubmissionController extends Controller
     public function __construct(
         private readonly AuditLogService $auditLogService,
         private readonly SubmissionImportService $submissionImportService,
+        private readonly SubmissionParserReportService $submissionParserReportService,
     ) {
     }
 
@@ -235,69 +236,7 @@ class SubmissionController extends Controller
     {
         $this->authorize('view', $submission);
 
-        $submission->load([
-            'students' => fn ($query) => $query
-                ->with('validationResult')
-                ->orderBy('source_file')
-                ->orderBy('row_number')
-                ->orderBy('full_name'),
-        ]);
-
-        $filename = sprintf('parser-report-%s-%s.csv', $submission->id, Str::slug($submission->semester));
-
-        return response()->streamDownload(function () use ($submission): void {
-            $handle = fopen('php://output', 'wb');
-
-            if ($handle === false) {
-                throw new \RuntimeException('Unable to open output stream for parser report download.');
-            }
-
-            fputcsv($handle, ['Report Type', 'Source File', 'Row Number', 'Student Number', 'Full Name', 'Status', 'Issue Code', 'Message']);
-
-            foreach ((array) data_get($submission->parsed_summary, 'files', []) as $sourceFile => $summary) {
-                foreach ((array) ($summary['parse_errors'] ?? []) as $message) {
-                    fputcsv($handle, ['parse_error', $sourceFile, '', '', '', 'warning', '', $message]);
-                }
-            }
-
-            foreach ($submission->students as $student) {
-                $validation = $student->validationResult;
-                $issues = collect($validation?->issues ?? []);
-
-                if ($issues->isEmpty()) {
-                    fputcsv($handle, [
-                        'validation',
-                        $student->source_file,
-                        $student->row_number,
-                        $student->student_number,
-                        $student->full_name,
-                        $validation?->status ?? 'valid',
-                        '',
-                        'No validation issues.',
-                    ]);
-
-                    continue;
-                }
-
-                foreach ($issues as $issue) {
-                    fputcsv($handle, [
-                        'validation',
-                        $student->source_file,
-                        $student->row_number,
-                        $student->student_number,
-                        $student->full_name,
-                        $validation?->status ?? 'invalid',
-                        $issue['code'] ?? '',
-                        $issue['message'] ?? '',
-                    ]);
-                }
-            }
-
-            fclose($handle);
-        }, $filename, [
-            'Content-Type' => 'text/csv',
-            'Cache-Control' => 'no-store, no-cache',
-        ]);
+        return $this->submissionParserReportService->download($submission, $request->boolean('invalid_only'));
     }
 
     private function ensureTransfereeProofForSubmitted(Submission $submission): void

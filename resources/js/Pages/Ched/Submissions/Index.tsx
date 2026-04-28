@@ -1,4 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { issueLabel } from '@/lib/submissionIssueLabels';
 import { PageProps } from '@/types';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import {
@@ -36,6 +37,7 @@ type SubmissionRow = {
             invalid_count: number;
             fuzzy_match_count: number;
             evaluated_count: number;
+            issue_counts?: Record<string, number>;
         };
     };
     user: {
@@ -83,8 +85,11 @@ type ReviewPageProps = PageProps<{
         school: string;
         semester: string;
         status: string;
+        validation: string;
+        issue_code: string;
         per_page: number;
     };
+    issueCodeOptions: string[];
     selectedSubmission?: SubmissionRow & {
         students: StudentRow[];
         validation_results: ValidationResultRow[];
@@ -111,7 +116,7 @@ const statusColor = (status: SubmissionRow['status']): string => {
 
 const statusLabel = (status: SubmissionRow['status']): string => status.replace('_', ' ').toUpperCase();
 
-export default function ChedSubmissionReviewPage({ submissions, selectedSubmission, filters }: ReviewPageProps) {
+export default function ChedSubmissionReviewPage({ submissions, selectedSubmission, filters, issueCodeOptions }: ReviewPageProps) {
     const { flash } = usePage<ReviewPageProps>().props;
     const [messageApi, messageContextHolder] = message.useMessage();
     const [copiedSerial, setCopiedSerial] = useState<string | null>(null);
@@ -254,6 +259,28 @@ export default function ChedSubmissionReviewPage({ submissions, selectedSubmissi
                                                 { label: 'Under Review', value: 'under_review' },
                                                 { label: 'Needs Correction', value: 'needs_correction' },
                                                 { label: 'Approved', value: 'approved' },
+                                            ]}
+                                        />
+                                    </div>
+                                    <div>
+                                        <Select
+                                            className="w-full"
+                                            value={filters.validation || 'all'}
+                                            onChange={(value) => onFilterChange({ validation: value === 'all' ? '' : value })}
+                                            options={[
+                                                { label: 'All validation states', value: 'all' },
+                                                { label: 'Invalid only', value: 'invalid' },
+                                            ]}
+                                        />
+                                    </div>
+                                    <div>
+                                        <Select
+                                            className="w-full"
+                                            value={filters.issue_code || 'all'}
+                                            onChange={(value) => onFilterChange({ issue_code: value === 'all' ? '' : value })}
+                                            options={[
+                                                { label: 'All issue codes', value: 'all' },
+                                                ...issueCodeOptions.map((issueCode) => ({ label: issueLabel(issueCode), value: issueCode })),
                                             ]}
                                         />
                                     </div>
@@ -415,6 +442,21 @@ export default function ChedSubmissionReviewPage({ submissions, selectedSubmissi
                                                             </div>
                                                         </div>
 
+                                                        {Object.keys(selectedValidation?.issue_counts ?? {}).length > 0 ? (
+                                                            <div className="portal-chip-row">
+                                                                {Object.entries(selectedValidation?.issue_counts ?? {}).map(([issueCode, count]) => (
+                                                                    <Tag
+                                                                        key={`${selectedSubmission.id}-${issueCode}`}
+                                                                        color={filters.issue_code === issueCode ? 'blue' : 'red'}
+                                                                        className="cursor-pointer"
+                                                                        onClick={() => onFilterChange({ validation: 'invalid', issue_code: issueCode })}
+                                                                    >
+                                                                        {issueLabel(issueCode)} ({count})
+                                                                    </Tag>
+                                                                ))}
+                                                            </div>
+                                                        ) : null}
+
                                                         <Input.TextArea
                                                             rows={4}
                                                             placeholder="CHED review notes"
@@ -443,6 +485,12 @@ export default function ChedSubmissionReviewPage({ submissions, selectedSubmissi
                                                             >
                                                                 Approve
                                                             </Button>
+                                                            <Button href={route('ched.submissions.report', { submission: selectedSubmission.id })}>
+                                                                Download Parser Report
+                                                            </Button>
+                                                            <Button href={route('ched.submissions.report', { submission: selectedSubmission.id, invalid_only: 1 })}>
+                                                                Download Invalid Report
+                                                            </Button>
                                                         </div>
                                                     </Space>
                                                 ),
@@ -466,6 +514,16 @@ export default function ChedSubmissionReviewPage({ submissions, selectedSubmissi
                                                             <Tag color="green">Valid rows: {selectedValidation?.valid_count ?? 0}</Tag>
                                                             <Tag color="red">Invalid rows: {selectedValidation?.invalid_count ?? 0}</Tag>
                                                             <Tag color="blue">Evaluated: {selectedValidation?.evaluated_count ?? 0}</Tag>
+                                                            {Object.entries(selectedValidation?.issue_counts ?? {}).map(([issueCode, count]) => (
+                                                                <Tag
+                                                                    key={`student-results-${issueCode}`}
+                                                                    color={filters.issue_code === issueCode ? 'blue' : 'orange'}
+                                                                    className="cursor-pointer"
+                                                                    onClick={() => onFilterChange({ validation: 'invalid', issue_code: issueCode })}
+                                                                >
+                                                                    {issueLabel(issueCode)} ({count})
+                                                                </Tag>
+                                                            ))}
                                                         </div>
 
                                                         <Table
@@ -518,7 +576,7 @@ export default function ChedSubmissionReviewPage({ submissions, selectedSubmissi
                                                                             <div className="portal-issue-stack">
                                                                                 {result.issues.map((issue, index) => (
                                                                                     <Tag key={`${row.id}-${issue.code ?? 'issue'}-${index}`} color="orange">
-                                                                                        {issue.code ?? 'issue'}
+                                                                                        {issueLabel(issue.code)}
                                                                                     </Tag>
                                                                                 ))}
                                                                             </div>
