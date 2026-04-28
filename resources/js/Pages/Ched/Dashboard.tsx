@@ -38,10 +38,10 @@ export default function Dashboard({ metrics: initialMetrics, filters, schools, s
 
     const statCards = useMemo(
         () => [
-            { label: 'Total submissions', value: metrics.total_submissions },
-            { label: 'Pending reviews', value: metrics.pending_reviews },
-            { label: 'Approved', value: metrics.approved },
-            { label: 'Rejected', value: metrics.rejected },
+            { label: 'Total submissions', value: metrics.total_submissions, meta: 'All records in the CHED pipeline' },
+            { label: 'Pending reviews', value: metrics.pending_reviews, meta: 'Submitted or under-review items' },
+            { label: 'Approved', value: metrics.approved, meta: 'Ready for serial issuance reporting' },
+            { label: 'Rejected', value: metrics.rejected, meta: 'Needs correction from school' },
         ],
         [metrics],
     );
@@ -122,9 +122,15 @@ export default function Dashboard({ metrics: initialMetrics, filters, schools, s
             <Space direction="vertical" size={24} className="w-full">
                 <Card className="!rounded-[24px] !border-white/80 !shadow-lg">
                     <Space direction="vertical" size={12} className="w-full">
-                        <Typography.Title level={4} className="!mb-0 !mt-0">
-                            Filters
-                        </Typography.Title>
+                        <div className="portal-section-heading">
+                            <Typography.Text className="portal-section-kicker">Filters</Typography.Text>
+                            <Typography.Title level={4} className="!mb-0 !mt-0">
+                                Dashboard scope
+                            </Typography.Title>
+                            <Typography.Text className="portal-section-note">
+                                Narrow the dashboard by semester or school to review pipeline health for a specific cohort.
+                            </Typography.Text>
+                        </div>
 
                         <Row gutter={[12, 12]}>
                             <Col xs={24} md={12}>
@@ -153,6 +159,14 @@ export default function Dashboard({ metrics: initialMetrics, filters, schools, s
                                 />
                             </Col>
                         </Row>
+
+                        <div className="portal-chip-row">
+                            <Tag>{semesterFilter === 'all' ? 'All semesters' : semesterFilter}</Tag>
+                            <Tag>{schoolFilter === 'all' ? 'All schools' : 'One school selected'}</Tag>
+                            <Button size="small" onClick={() => { setSemesterFilter('all'); setSchoolFilter('all'); void loadMetrics('all', 'all'); }}>
+                                Reset scope
+                            </Button>
+                        </div>
                     </Space>
                 </Card>
 
@@ -160,7 +174,10 @@ export default function Dashboard({ metrics: initialMetrics, filters, schools, s
                     {statCards.map((stat) => (
                         <Col xs={24} sm={12} lg={6} key={stat.label}>
                             <Card className="!rounded-[24px] !border-white/80 !shadow-lg">
-                                <Statistic title={stat.label} value={stat.value} />
+                                <Space direction="vertical" size={8} className="w-full">
+                                    <Statistic title={stat.label} value={stat.value} />
+                                    <Typography.Text className="portal-section-note">{stat.meta}</Typography.Text>
+                                </Space>
                             </Card>
                         </Col>
                     ))}
@@ -170,10 +187,13 @@ export default function Dashboard({ metrics: initialMetrics, filters, schools, s
 
                 <Card className="!rounded-[24px] !border-white/80 !shadow-lg">
                     <Space direction="vertical" size={12}>
-                        <Typography.Title level={4} className="!mb-0 !mt-0">
-                            Review Queue
-                        </Typography.Title>
-                        <Typography.Text className="!text-slate-500">
+                        <div className="portal-section-heading">
+                            <Typography.Text className="portal-section-kicker">Action</Typography.Text>
+                            <Typography.Title level={4} className="!mb-0 !mt-0">
+                                Review Queue
+                            </Typography.Title>
+                        </div>
+                        <Typography.Text className="portal-section-note">
                             Open the queue to inspect validation results and move submissions through review statuses.
                         </Typography.Text>
                         <Link href={route('ched.submissions.index')}>
@@ -184,9 +204,15 @@ export default function Dashboard({ metrics: initialMetrics, filters, schools, s
 
                 <Card className="!rounded-[24px] !border-white/80 !shadow-lg">
                     <Space direction="vertical" size={14} className="w-full">
-                        <Typography.Title level={4} className="!mb-0 !mt-0">
-                            Per-semester tracking trend
-                        </Typography.Title>
+                        <div className="portal-section-heading">
+                            <Typography.Text className="portal-section-kicker">Trend</Typography.Text>
+                            <Typography.Title level={4} className="!mb-0 !mt-0">
+                                Per-semester tracking trend
+                            </Typography.Title>
+                            <Typography.Text className="portal-section-note">
+                                Compare pending, approved, and rejected movement semester by semester.
+                            </Typography.Text>
+                        </div>
 
                         <Space wrap>
                             <Tag color="blue">Pending reviews</Tag>
@@ -207,6 +233,12 @@ export default function Dashboard({ metrics: initialMetrics, filters, schools, s
                                             <Typography.Text strong>{row.semester}</Typography.Text>
                                             <Tag>{row.total_submissions} total</Tag>
                                         </Space>
+
+                                        <div className="portal-chip-row">
+                                            <Tag color="blue">Pending {row.pending_reviews}</Tag>
+                                            <Tag color="green">Approved {row.approved}</Tag>
+                                            <Tag color="red">Rejected {row.rejected}</Tag>
+                                        </div>
 
                                         <Space wrap>
                                             {deltaTag(row.pending_reviews, previous?.pending_reviews ?? null, 'Pending')}

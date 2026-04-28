@@ -132,6 +132,19 @@ export default function SubmissionReviewPage({ submissions, selectedSubmission, 
         );
     };
 
+    const selectedOverall = selectedSubmission?.parsed_summary?.overall;
+    const selectedValidation = selectedSubmission?.parsed_summary?.validation;
+    const adminSummaryTiles = selectedSubmission
+        ? [
+            { label: 'Imported', value: String(selectedOverall?.student_count ?? 0), meta: 'Rows imported from uploaded files' },
+            { label: 'Invalid', value: String(selectedValidation?.invalid_count ?? 0), meta: 'Needs follow-up before approval' },
+            { label: 'Name Variations', value: String(selectedValidation?.fuzzy_match_count ?? 0), meta: 'Potential fuzzy matches' },
+            { label: 'Parse Issues', value: String(selectedOverall?.parse_error_count ?? 0), meta: 'Row-level parsing concerns' },
+            { label: 'Duplicates', value: String(selectedOverall?.duplicate_rows ?? 0), meta: 'Skipped duplicate identities' },
+            { label: 'Coverage', value: String(selectedValidation?.evaluated_count ?? 0), meta: 'Rows reviewed by validation phase' },
+        ]
+        : [];
+
     return (
         <AuthenticatedLayout
             header={
@@ -154,26 +167,32 @@ export default function SubmissionReviewPage({ submissions, selectedSubmission, 
                     <Col xs={24} xl={11}>
                         <Card className="!rounded-[24px] !border-white/80 !shadow-lg">
                             <Space direction="vertical" size={16} className="w-full">
-                                <Typography.Title level={4} className="!mb-0 !mt-0">
-                                    Submission queue
-                                </Typography.Title>
+                                <div className="portal-section-heading">
+                                    <Typography.Text className="portal-section-kicker">Queue</Typography.Text>
+                                    <Typography.Title level={4} className="!mb-0 !mt-0">
+                                        Submission queue
+                                    </Typography.Title>
+                                    <Typography.Text className="portal-section-note">
+                                        Inspect parse quality here, then hand approved-ready records to the CHED review queue.
+                                    </Typography.Text>
+                                </div>
 
-                                <Row gutter={[8, 8]}>
-                                    <Col span={24}>
+                                <div className="portal-filter-grid portal-filter-grid--three">
+                                    <div>
                                         <Input
                                             placeholder="Search school"
                                             value={filters.school}
                                             onChange={(event) => onFilterChange({ school: event.target.value })}
                                         />
-                                    </Col>
-                                    <Col span={12}>
+                                    </div>
+                                    <div>
                                         <Input
                                             placeholder="Semester"
                                             value={filters.semester}
                                             onChange={(event) => onFilterChange({ semester: event.target.value })}
                                         />
-                                    </Col>
-                                    <Col span={12}>
+                                    </div>
+                                    <div>
                                         <Select
                                             className="w-full"
                                             value={filters.status || 'all'}
@@ -184,8 +203,8 @@ export default function SubmissionReviewPage({ submissions, selectedSubmission, 
                                                 { label: 'Submitted', value: 'submitted' },
                                             ]}
                                         />
-                                    </Col>
-                                    <Col span={12}>
+                                    </div>
+                                    <div>
                                         <Select
                                             className="w-full"
                                             value={filters.validation || 'all'}
@@ -196,8 +215,8 @@ export default function SubmissionReviewPage({ submissions, selectedSubmission, 
                                                 { label: 'Has invalid rows', value: 'invalid' },
                                             ]}
                                         />
-                                    </Col>
-                                    <Col span={12}>
+                                    </div>
+                                    <div>
                                         <Select
                                             className="w-full"
                                             value={filters.per_page}
@@ -208,8 +227,8 @@ export default function SubmissionReviewPage({ submissions, selectedSubmission, 
                                                 { label: '25 per page', value: 25 },
                                             ]}
                                         />
-                                    </Col>
-                                    <Col span={12}>
+                                    </div>
+                                    <div>
                                         <Button
                                             className="w-full"
                                             onClick={() =>
@@ -218,12 +237,13 @@ export default function SubmissionReviewPage({ submissions, selectedSubmission, 
                                         >
                                             Reset filters
                                         </Button>
-                                    </Col>
-                                </Row>
+                                    </div>
+                                </div>
 
                                 <Table
                                     rowKey="id"
                                     dataSource={submissions.data}
+                                    rowClassName={(record: SubmissionRow) => (record.id === selectedSubmission?.id ? 'portal-list-card--active' : '')}
                                     pagination={{
                                         current: submissions.current_page,
                                         pageSize: submissions.per_page,
@@ -240,13 +260,15 @@ export default function SubmissionReviewPage({ submissions, selectedSubmission, 
                                             title: 'School',
                                             key: 'school',
                                             render: (_, row: SubmissionRow) => (
-                                                <Space direction="vertical" size={0}>
+                                                <Space direction="vertical" size={2}>
                                                     <Typography.Text strong>
                                                         {row.user.school_name ?? row.user.name}
                                                     </Typography.Text>
-                                                    <Typography.Text className="!text-slate-500">
-                                                        {row.user.school_code ?? row.user.email}
-                                                    </Typography.Text>
+                                                    <div className="portal-inline-meta">
+                                                        <span>{row.user.school_code ?? row.user.email}</span>
+                                                        <strong>{row.students_count} students</strong>
+                                                        <span>{row.parsed_summary?.validation?.invalid_count ?? 0} invalid</span>
+                                                    </div>
                                                 </Space>
                                             ),
                                         },
@@ -264,11 +286,6 @@ export default function SubmissionReviewPage({ submissions, selectedSubmission, 
                                                     {value.toUpperCase()}
                                                 </Tag>
                                             ),
-                                        },
-                                        {
-                                            title: 'Students',
-                                            dataIndex: 'students_count',
-                                            key: 'students_count',
                                         },
                                         {
                                             title: 'Action',
@@ -298,50 +315,43 @@ export default function SubmissionReviewPage({ submissions, selectedSubmission, 
                             <Space direction="vertical" size={16} className="w-full">
                                 <Card className="!rounded-[24px] !border-white/80 !shadow-lg">
                                     <Space direction="vertical" size={16} className="w-full">
-                                        <div>
+                                        <div className="portal-section-heading">
+                                            <Typography.Text className="portal-section-kicker">Inspection</Typography.Text>
                                             <Typography.Title level={4} className="!mb-1 !mt-0">
                                                 {selectedSubmission.user.school_name ?? selectedSubmission.user.name}
                                             </Typography.Title>
-                                            <Typography.Text className="!text-slate-500">
+                                            <Typography.Text className="portal-section-note">
                                                 {selectedSubmission.semester} | Parsed {selectedSubmission.parsed_at ? dayjs(selectedSubmission.parsed_at).format('MMM D, YYYY h:mm A') : 'Not yet'}
                                             </Typography.Text>
                                         </div>
 
-                                        <Descriptions size="small" bordered column={2}>
-                                            <Descriptions.Item label="Imported Students">
-                                                {selectedSubmission.parsed_summary?.overall?.student_count ?? 0}
-                                            </Descriptions.Item>
-                                            <Descriptions.Item label="Duplicate Rows">
-                                                {selectedSubmission.parsed_summary?.overall?.duplicate_rows ?? 0}
-                                            </Descriptions.Item>
-                                            <Descriptions.Item label="Other Skipped Rows">
-                                                {selectedSubmission.parsed_summary?.overall?.skipped_rows ?? 0}
-                                            </Descriptions.Item>
-                                            <Descriptions.Item label="Parse Issues">
-                                                {selectedSubmission.parsed_summary?.overall?.parse_error_count ?? 0}
-                                            </Descriptions.Item>
-                                            <Descriptions.Item label="Valid Records">
-                                                {selectedSubmission.parsed_summary?.validation?.valid_count ?? 0}
-                                            </Descriptions.Item>
-                                            <Descriptions.Item label="Invalid Records">
-                                                {selectedSubmission.parsed_summary?.validation?.invalid_count ?? 0}
-                                            </Descriptions.Item>
-                                            <Descriptions.Item label="Name Variations">
-                                                {selectedSubmission.parsed_summary?.validation?.fuzzy_match_count ?? 0}
-                                            </Descriptions.Item>
-                                            <Descriptions.Item label="Validation Coverage">
-                                                {selectedSubmission.parsed_summary?.validation?.evaluated_count ?? 0}
-                                            </Descriptions.Item>
-                                        </Descriptions>
+                                        <div className="portal-summary-grid">
+                                            {adminSummaryTiles.map((tile) => (
+                                                <div key={tile.label} className="portal-summary-tile">
+                                                    <span className="portal-summary-label">{tile.label}</span>
+                                                    <div className="portal-summary-value">{tile.value}</div>
+                                                    <div className="portal-summary-meta">{tile.meta}</div>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        <div className="portal-chip-row">
+                                            <Tag color="green">{selectedValidation?.valid_count ?? 0} valid</Tag>
+                                            <Tag color="red">{selectedValidation?.invalid_count ?? 0} invalid</Tag>
+                                            <Tag color="blue">{selectedValidation?.fuzzy_match_count ?? 0} variations</Tag>
+                                            <Tag>{selectedOverall?.skipped_rows ?? 0} skipped</Tag>
+                                        </div>
 
                                         {Object.entries(selectedSubmission.parsed_summary?.files ?? {}).map(
                                             ([fileKey, summary]) => (
-                                                <Card key={fileKey} size="small">
-                                                    <Space direction="vertical" size={4} className="w-full">
+                                                <Card key={fileKey} size="small" className="!border-slate-200">
+                                                    <Space direction="vertical" size={6} className="w-full">
                                                         <Typography.Text strong>{fileKey}</Typography.Text>
-                                                        <Typography.Text className="!text-slate-500">
-                                                            Imported: {summary.imported_count} | Duplicates: {summary.duplicate_rows} | Skipped: {summary.skipped_rows}
-                                                        </Typography.Text>
+                                                        <div className="portal-chip-row">
+                                                            <Tag color="green">Imported {summary.imported_count}</Tag>
+                                                            <Tag color="gold">Duplicates {summary.duplicate_rows}</Tag>
+                                                            <Tag>Skipped {summary.skipped_rows}</Tag>
+                                                        </div>
                                                         {summary.parse_errors.length > 0 ? (
                                                             <Alert
                                                                 type="warning"
@@ -354,11 +364,45 @@ export default function SubmissionReviewPage({ submissions, selectedSubmission, 
                                                 </Card>
                                             ),
                                         )}
+
+                                        <Alert
+                                            type="info"
+                                            showIcon
+                                            message="Approval actions are in CHED Review Queue"
+                                            description={(
+                                                <Space direction="vertical" size={8}>
+                                                    <Typography.Text className="portal-section-note">
+                                                        This page is for parser/validation inspection. Use the CHED queue to move status to Under Review, Needs Correction, or Approved.
+                                                    </Typography.Text>
+                                                    <Button
+                                                        type="primary"
+                                                        onClick={() =>
+                                                            router.get(
+                                                                route('ched.submissions.index'),
+                                                                { submission: selectedSubmission.id },
+                                                            )
+                                                        }
+                                                    >
+                                                        Open CHED Review Queue
+                                                    </Button>
+                                                </Space>
+                                            )}
+                                        />
                                     </Space>
                                 </Card>
 
                                 <Card className="!rounded-[24px] !border-white/80 !shadow-lg">
                                     <Space direction="vertical" size={16} className="w-full">
+                                        <div className="portal-section-heading">
+                                            <Typography.Text className="portal-section-kicker">Imported Rows</Typography.Text>
+                                            <Typography.Title level={4} className="!mb-0 !mt-0">
+                                                Imported students
+                                            </Typography.Title>
+                                            <Typography.Text className="portal-section-note">
+                                                Inspect source rows and look for invalid markers before handing off to CHED review.
+                                            </Typography.Text>
+                                        </div>
+
                                         <Typography.Title level={4} className="!mb-0 !mt-0">
                                             Imported students
                                         </Typography.Title>
@@ -427,7 +471,7 @@ export default function SubmissionReviewPage({ submissions, selectedSubmission, 
                                                         }
 
                                                         return (
-                                                            <Space direction="vertical" size={4}>
+                                                            <div className="portal-issue-stack">
                                                                 {validation.issues.map((issue, index) => (
                                                                     <Space key={`${row.id}-${issue.code ?? 'issue'}-${index}`} direction="vertical" size={0}>
                                                                             <Tag color={issueColor(issue.code)}>{issue.code ?? 'issue'}</Tag>
@@ -445,7 +489,7 @@ export default function SubmissionReviewPage({ submissions, selectedSubmission, 
                                                                         ) : null}
                                                                     </Space>
                                                                 ))}
-                                                            </Space>
+                                                            </div>
                                                         );
                                                     },
                                                 },

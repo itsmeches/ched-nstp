@@ -45,22 +45,26 @@ class RegisteredUserController extends Controller
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
+        $role = Role::query()->firstOrCreate(
+            ['name' => $this->roleService->defaultRegistrationRole()],
+            ['label' => 'School Account'],
+        );
+
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
-                'role_id' => Role::query()->firstOrCreate(
-                    ['name' => $this->roleService->defaultRegistrationRole()],
-                    ['label' => 'School Account'],
-                )->id,
+            'role_id' => $role->id,
             'school_name' => $request->school_name,
             'school_code' => strtoupper((string) $request->school_code),
             'password' => Hash::make($request->password),
+            'approval_status' => 'pending', // Set to pending for school accounts
         ]);
 
         event(new Registered($user));
 
-        Auth::login($user);
-
-        return redirect(route($this->roleService->dashboardRouteName($user), absolute: false));
+        // Don't auto-login, show pending approval message
+        return redirect(route('login'))->with('status', 
+            'Registration successful! Your account is pending approval from a CHED administrator. Please log in once it has been approved.'
+        );
     }
 }

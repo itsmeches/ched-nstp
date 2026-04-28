@@ -1,0 +1,11 @@
+Republic of the Philippines
+Commission on Higher Education
+NSTP 2 Enrollment List (Invalid Test Data)
+No.,Student No.,Surname,First Name,Middle Name,Program,Sex,Birthdate,Street / Barangay,Municipality / City,Province,Contact Number,Email Address,Is Transferee
+1,2026-3001,De Vera,Paolo,Lim,CWTS - BSIT,Male,2004-03-10,Brgy A,Pasig,NCR,09170003001,paolo.valid@example.com,NO
+2,2026-3002,Cruz,Mika,Santos,LTS - BSN,Female,2004-11-22,Brgy B,Makati,NCR,09170003002,mika.valid@example.com,NO
+3,2026-3003,Reyes,Anton,Diaz,ROTC - BSCrim,,2004-05-16,Brgy C,Taguig,NCR,09170003003,anton.missing-sex@example.com,NO
+4,2026-3004,Navarro,Bea,Ramos,CWTS - BSHM,Female,13/32/2005,Brgy D,Paranaque,NCR,09170003004,bea.invalid-date@example.com,NO
+Male Total,,,,,,,,,,,,,1
+Female Total,,,,,,,,,,,,,2
+Grand Total,,,,,,,,,,,,,4

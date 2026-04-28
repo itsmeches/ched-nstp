@@ -134,6 +134,13 @@ export default function Login({
                     </Typography.Text>
                 </div>
             </Space>
+
+            <style>{`
+                .ant-form-item-label > label {
+                    min-width: 120px !important;
+                    width: 120px !important;
+                }
+            `}</style>
         </GuestLayout>
     );
 }

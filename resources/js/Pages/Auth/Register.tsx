@@ -186,6 +186,13 @@ export default function Register() {
                     </Typography.Text>
                 </div>
             </Space>
+
+            <style>{`
+                .ant-form-item-label > label {
+                    min-width: 140px !important;
+                    width: 140px !important;
+                }
+            `}</style>
         </GuestLayout>
     );
 }

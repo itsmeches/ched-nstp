@@ -27,9 +27,32 @@ createInertiaApp({
                         colorPrimary: '#0050b3',
                         colorInfo: '#0050b3',
                         colorSuccess: '#237804',
-                        borderRadius: 14,
+                        borderRadius: 16,
+                        colorTextBase: '#0f172a',
+                        colorBgLayout: 'transparent',
+                        colorBgContainer: '#ffffff',
+                        colorBorderSecondary: '#dbe5f4',
                         fontFamily:
-                            'Segoe UI, "Source Sans 3", "Helvetica Neue", sans-serif',
+                            'Public Sans, "Segoe UI", "Source Sans 3", sans-serif',
+                    },
+                    components: {
+                        Layout: {
+                            headerBg: 'transparent',
+                            bodyBg: 'transparent',
+                            siderBg: 'transparent',
+                        },
+                        Menu: {
+                            darkItemBg: 'transparent',
+                            darkSubMenuItemBg: 'transparent',
+                        },
+                        Card: {
+                            borderRadiusLG: 24,
+                        },
+                        Table: {
+                            borderColor: '#e2e8f0',
+                            headerBg: '#ecf4ff',
+                            headerColor: '#1e293b',
+                        },
                     },
                 }}
             >

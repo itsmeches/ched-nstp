@@ -40,7 +40,7 @@ Route::middleware(['auth', 'verified', 'role:admin,superadmin'])->prefix('admin'
     Route::get('/submissions', [SubmissionReviewController::class, 'index'])->name('submissions.index');
 });
 
-Route::middleware(['auth', 'verified', 'role:ched_staff'])->prefix('ched')->name('ched.')->group(function () {
+Route::middleware(['auth', 'verified', 'role:admin,superadmin,ched_staff'])->prefix('ched')->name('ched.')->group(function () {
     Route::get('/dashboard', ChedDashboardController::class)->name('dashboard');
     Route::get('/dashboard/metrics', [ChedDashboardController::class, 'metrics'])->name('dashboard.metrics');
     Route::get('/submissions', [ChedSubmissionReviewController::class, 'index'])->name('submissions.index');

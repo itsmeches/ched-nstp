@@ -147,6 +147,29 @@ export default function SchoolSubmissionPage({ submissions, school }: Submission
         (submission) => ['draft', 'needs_correction'].includes(submission.status) && requiresTransfereeProof(submission),
     );
 
+    const schoolSummaryTiles = [
+        {
+            label: 'Submissions',
+            value: String(submissions.length),
+            meta: 'All uploads in your history',
+        },
+        {
+            label: 'Needs Action',
+            value: String(submissions.filter((submission) => ['draft', 'needs_correction'].includes(submission.status)).length),
+            meta: 'Drafts or records needing re-submission',
+        },
+        {
+            label: 'Approved',
+            value: String(submissions.filter((submission) => submission.status === 'approved').length),
+            meta: 'CHED-approved submissions',
+        },
+        {
+            label: 'Serials',
+            value: String(submissions.reduce((total, submission) => total + (submission.serial_numbers_count ?? 0), 0)),
+            meta: 'Serial numbers issued from approved rows',
+        },
+    ];
+
     return (
         <AuthenticatedLayout
             header={
@@ -186,10 +209,38 @@ export default function SchoolSubmissionPage({ submissions, school }: Submission
                     />
                 ) : null}
 
+                <div className="portal-summary-grid">
+                    {schoolSummaryTiles.map((tile) => (
+                        <div key={tile.label} className="portal-summary-tile">
+                            <span className="portal-summary-label">{tile.label}</span>
+                            <div className="portal-summary-value">{tile.value}</div>
+                            <div className="portal-summary-meta">{tile.meta}</div>
+                        </div>
+                    ))}
+                </div>
+
                 <Row gutter={[16, 16]}>
                     <Col xs={24} xl={10}>
                         <Card className="!rounded-[24px] !border-white/80 !shadow-lg">
-                            <Form layout="vertical">
+                            <Space direction="vertical" size={16} className="w-full">
+                                <div className="portal-section-heading">
+                                    <Typography.Text className="portal-section-kicker">Upload</Typography.Text>
+                                    <Typography.Title level={4} className="!mb-0 !mt-0">
+                                        Submission form
+                                    </Typography.Title>
+                                    <Typography.Text className="portal-section-note">
+                                        Upload the three required NSTP files for one semester, then save as draft or submit for CHED review.
+                                    </Typography.Text>
+                                </div>
+
+                                <div className="portal-chip-row">
+                                    <Tag color={school.approval_status === 'approved' ? 'green' : 'gold'}>
+                                        Account {school.approval_status ?? 'pending'}
+                                    </Tag>
+                                    <Tag>{submissionsNeedingTransfereeProof.length} submission(s) need proof</Tag>
+                                </div>
+
+                                <Form layout="vertical">
                                 <Form.Item
                                     label="Semester"
                                     validateStatus={errors.semester ? 'error' : ''}
@@ -208,7 +259,7 @@ export default function SchoolSubmissionPage({ submissions, school }: Submission
                                     help={errors.nstp_1_enrollment}
                                 >
                                     <Upload {...uploadProps('nstp_1_enrollment')}>
-                                        <Button>Attach file (xlsx/csv)</Button>
+                                        <Button>Attach NSTP 1 file</Button>
                                     </Upload>
                                 </Form.Item>
 
@@ -218,7 +269,7 @@ export default function SchoolSubmissionPage({ submissions, school }: Submission
                                     help={errors.nstp_2_enrollment}
                                 >
                                     <Upload {...uploadProps('nstp_2_enrollment')}>
-                                        <Button>Attach file (xlsx/csv)</Button>
+                                        <Button>Attach NSTP 2 file</Button>
                                     </Upload>
                                 </Form.Item>
 
@@ -228,7 +279,7 @@ export default function SchoolSubmissionPage({ submissions, school }: Submission
                                     help={errors.graduates_list}
                                 >
                                     <Upload {...uploadProps('graduates_list')}>
-                                        <Button>Attach file (xlsx/csv)</Button>
+                                        <Button>Attach Form 2B file</Button>
                                     </Upload>
                                 </Form.Item>
 
@@ -242,7 +293,7 @@ export default function SchoolSubmissionPage({ submissions, school }: Submission
                                     </Upload>
                                 </Form.Item>
 
-                                <Space>
+                                <div className="portal-action-bar">
                                     <Button
                                         type="default"
                                         loading={processing}
@@ -259,24 +310,51 @@ export default function SchoolSubmissionPage({ submissions, school }: Submission
                                     >
                                         Save as Submitted
                                     </Button>
-                                </Space>
-                            </Form>
+                                </div>
+                                </Form>
+                            </Space>
                         </Card>
                     </Col>
 
                     <Col xs={24} xl={14}>
                         <Card className="!rounded-[24px] !border-white/80 !shadow-lg">
                             <Space direction="vertical" size={16} className="w-full">
-                                <Typography.Title level={4} className="!mb-0 !mt-0">
-                                    Submission history
-                                </Typography.Title>
+                                <div className="portal-section-heading">
+                                    <Typography.Text className="portal-section-kicker">History</Typography.Text>
+                                    <Typography.Title level={4} className="!mb-0 !mt-0">
+                                        Submission history
+                                    </Typography.Title>
+                                    <Typography.Text className="portal-section-note">
+                                        Expand a row to inspect validation counts, parse issues, issued serials, and next required action.
+                                    </Typography.Text>
+                                </div>
 
                                 <Table
                                     rowKey="id"
                                     dataSource={submissions}
+                                    className="overflow-hidden [&_.ant-table-container]:!rounded-[20px] [&_.ant-table-container]:!border [&_.ant-table-container]:!border-slate-200 [&_.ant-table-tbody>tr>td]:!border-slate-100 [&_.ant-table-tbody>tr>td]:!align-top [&_.ant-table-thead>tr>th]:!bg-slate-50 [&_.ant-table-thead>tr>th]:!border-slate-200 [&_.ant-table-thead>tr>th]:!py-4 [&_.ant-table-thead>tr>th]:!text-sm [&_.ant-table-thead>tr>th]:!font-semibold [&_.ant-table-thead>tr>th]:!text-slate-700"
+                                    scroll={{ x: 980 }}
+                                    size="middle"
+                                    locale={{
+                                        emptyText: (
+                                            <div className="py-10 text-center text-sm text-slate-400">
+                                                No submissions yet.
+                                            </div>
+                                        ),
+                                    }}
                                     expandable={{
                                         expandedRowRender: (record: Submission) => (
                                             <Space direction="vertical" size={12} className="w-full">
+                                                <div className="portal-chip-row">
+                                                    <Tag color={record.status === 'approved' ? 'green' : record.status === 'needs_correction' ? 'red' : record.status === 'under_review' ? 'blue' : record.status === 'submitted' ? 'cyan' : 'gold'}>
+                                                        {record.status.replace('_', ' ').toUpperCase()}
+                                                    </Tag>
+                                                    <Tag color="green">Valid {record.parsed_summary?.validation?.valid_count ?? 0}</Tag>
+                                                    <Tag color="red">Invalid {record.parsed_summary?.validation?.invalid_count ?? 0}</Tag>
+                                                    <Tag>Transferee {record.parsed_summary?.overall?.transferee_count ?? 0}</Tag>
+                                                    <Tag>Serials {record.serial_numbers_count ?? 0}</Tag>
+                                                </div>
+
                                                 <Descriptions size="small" column={2} bordered>
                                                     <Descriptions.Item label="Imported Students">
                                                         {record.parsed_summary?.overall?.student_count ?? 0}
@@ -314,6 +392,8 @@ export default function SchoolSubmissionPage({ submissions, school }: Submission
                                                     <Table
                                                         size="small"
                                                         rowKey="id"
+                                                        className="[&_.ant-table-container]:!rounded-2xl [&_.ant-table-container]:!border [&_.ant-table-container]:!border-slate-200 [&_.ant-table-thead>tr>th]:!bg-slate-50 [&_.ant-table-thead>tr>th]:!text-xs [&_.ant-table-thead>tr>th]:!font-semibold [&_.ant-table-tbody>tr>td]:!border-slate-100"
+                                                        scroll={{ x: 640 }}
                                                         pagination={{ pageSize: 5 }}
                                                         dataSource={(record.students ?? []).filter(
                                                             (student) => Boolean(student.serial_number?.serial_number),
@@ -365,9 +445,11 @@ export default function SchoolSubmissionPage({ submissions, school }: Submission
                                                         <Card key={fileKey} size="small">
                                                             <Space direction="vertical" size={6} className="w-full">
                                                                 <Typography.Text strong>{fileKey}</Typography.Text>
-                                                                <Typography.Text className="!text-slate-500">
-                                                                    Imported: {summary.imported_count} | Duplicates skipped: {summary.duplicate_rows} | Other skipped: {summary.skipped_rows}
-                                                                </Typography.Text>
+                                                                <div className="portal-chip-row">
+                                                                    <Tag color="green">Imported {summary.imported_count}</Tag>
+                                                                    <Tag color="gold">Duplicates {summary.duplicate_rows}</Tag>
+                                                                    <Tag>Skipped {summary.skipped_rows}</Tag>
+                                                                </div>
                                                                 {summary.parse_errors.length > 0 ? (
                                                                     <Alert
                                                                         type="warning"
@@ -383,17 +465,20 @@ export default function SchoolSubmissionPage({ submissions, school }: Submission
                                             </Space>
                                         ),
                                     }}
-                                    pagination={{ pageSize: 8 }}
+                                    pagination={{ pageSize: 8, showSizeChanger: false, position: ['bottomRight'] }}
                                     columns={[
                                         {
                                             title: 'Semester',
                                             dataIndex: 'semester',
                                             key: 'semester',
+                                            width: 150,
+                                            ellipsis: true,
                                         },
                                         {
                                             title: 'Status',
                                             dataIndex: 'status',
                                             key: 'status',
+                                            width: 160,
                                             render: (value: Submission['status']) => (
                                                 <Tag color={value === 'approved' ? 'green' : value === 'needs_correction' ? 'red' : value === 'under_review' ? 'blue' : value === 'submitted' ? 'cyan' : 'gold'}>
                                                     {value.replace('_', ' ').toUpperCase()}
@@ -403,42 +488,54 @@ export default function SchoolSubmissionPage({ submissions, school }: Submission
                                         {
                                             title: 'Files',
                                             key: 'files',
+                                            width: 90,
+                                            align: 'center',
                                             render: (_, record: Submission) => Object.keys(record.files ?? {}).length,
                                         },
                                         {
                                             title: 'Students',
                                             key: 'students',
+                                            width: 100,
+                                            align: 'center',
                                             render: (_, record: Submission) =>
                                                 record.parsed_summary?.overall?.student_count ?? 0,
                                         },
                                         {
                                             title: 'Transferee',
                                             key: 'transferee',
+                                            width: 120,
+                                            align: 'center',
                                             render: (_, record: Submission) => record.parsed_summary?.overall?.transferee_count ?? 0,
                                         },
                                         {
                                             title: 'Serials',
                                             key: 'serials',
+                                            width: 90,
+                                            align: 'center',
                                             render: (_, record: Submission) => record.serial_numbers_count ?? 0,
                                         },
                                         {
                                             title: 'Created',
                                             dataIndex: 'created_at',
                                             key: 'created_at',
+                                            width: 190,
+                                            ellipsis: true,
                                             render: (value: string) => dayjs(value).format('MMM D, YYYY h:mm A'),
                                         },
                                         {
                                             title: 'Action',
                                             key: 'action',
+                                            width: 220,
                                             render: (_, record: Submission) =>
                                                 record.status === 'draft' || record.status === 'needs_correction' ? (
                                                     requiresTransfereeProof(record) ? (
-                                                        <Typography.Text className="!text-amber-700">
+                                                        <Typography.Text className="!text-sm !leading-6 !text-amber-700">
                                                             Attach transferee proof to submit
                                                         </Typography.Text>
                                                     ) : (
                                                         <Button
                                                             type="link"
+                                                            className="!px-0"
                                                             onClick={() =>
                                                                 router.patch(
                                                                     route('school.submissions.submit', {
@@ -451,7 +548,7 @@ export default function SchoolSubmissionPage({ submissions, school }: Submission
                                                         </Button>
                                                     )
                                                 ) : (
-                                                    <Typography.Text className="!text-emerald-700">
+                                                    <Typography.Text className="!text-sm !font-medium !text-emerald-700">
                                                         {record.status === 'approved' ? 'Approved' : 'Submitted'}
                                                     </Typography.Text>
                                                 ),

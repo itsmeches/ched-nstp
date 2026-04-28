@@ -56,9 +56,9 @@ class SubmissionController extends Controller
 
         $validated = $request->validate([
             'semester' => 'required|string|max:120',
-            'nstp_1_enrollment' => 'nullable|file|mimes:xlsx,csv|max:20480',
-            'nstp_2_enrollment' => 'nullable|file|mimes:xlsx,csv|max:20480',
-            'graduates_list' => 'nullable|file|mimes:xlsx,csv|max:20480',
+            'nstp_1_enrollment' => 'nullable|file|mimetypes:text/plain,text/csv,application/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet|max:20480',
+            'nstp_2_enrollment' => 'nullable|file|mimetypes:text/plain,text/csv,application/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet|max:20480',
+            'graduates_list' => 'nullable|file|mimetypes:text/plain,text/csv,application/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet|max:20480',
             'transferee_proof' => 'nullable|file|mimes:pdf,jpg,jpeg,png,doc,docx|max:20480',
             'status' => 'required|in:draft,submitted',
         ]);

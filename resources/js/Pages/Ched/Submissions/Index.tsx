@@ -6,7 +6,6 @@ import {
     Button,
     Card,
     Col,
-    Descriptions,
     Empty,
     Input,
     message,
@@ -15,6 +14,7 @@ import {
     Space,
     Table,
     Tag,
+    Tabs,
     Typography,
 } from 'antd';
 import dayjs from 'dayjs';
@@ -109,6 +109,8 @@ const statusColor = (status: SubmissionRow['status']): string => {
     }
 };
 
+const statusLabel = (status: SubmissionRow['status']): string => status.replace('_', ' ').toUpperCase();
+
 export default function ChedSubmissionReviewPage({ submissions, selectedSubmission, filters }: ReviewPageProps) {
     const { flash } = usePage<ReviewPageProps>().props;
     const [messageApi, messageContextHolder] = message.useMessage();
@@ -165,6 +167,34 @@ export default function ChedSubmissionReviewPage({ submissions, selectedSubmissi
         }
     };
 
+    const selectedValidation = selectedSubmission?.parsed_summary?.validation;
+    const overviewTiles = selectedSubmission
+        ? [
+            {
+                label: 'Status',
+                value: statusLabel(selectedSubmission.status),
+                meta: selectedSubmission.reviewed_at
+                    ? `Reviewed ${dayjs(selectedSubmission.reviewed_at).format('MMM D, YYYY h:mm A')}`
+                    : 'Awaiting review',
+            },
+            {
+                label: 'Students',
+                value: String(selectedSubmission.students_count),
+                meta: selectedSubmission.semester,
+            },
+            {
+                label: 'Valid',
+                value: String(selectedValidation?.valid_count ?? 0),
+                meta: 'Passed validation',
+            },
+            {
+                label: 'Invalid',
+                value: String(selectedValidation?.invalid_count ?? 0),
+                meta: 'Needs attention',
+            },
+        ]
+        : [];
+
     return (
         <AuthenticatedLayout
             header={
@@ -188,26 +218,32 @@ export default function ChedSubmissionReviewPage({ submissions, selectedSubmissi
                     <Col xs={24} xl={11}>
                         <Card className="!rounded-[24px] !border-white/80 !shadow-lg">
                             <Space direction="vertical" size={16} className="w-full">
-                                <Typography.Title level={4} className="!mb-0 !mt-0">
-                                    Submissions
-                                </Typography.Title>
+                                <div className="portal-section-heading">
+                                    <Typography.Text className="portal-section-kicker">Queue</Typography.Text>
+                                    <Typography.Title level={4} className="!mb-0 !mt-0">
+                                        Submissions
+                                    </Typography.Title>
+                                    <Typography.Text className="portal-section-note">
+                                        Choose one submission to review. The right panel only shows the current record.
+                                    </Typography.Text>
+                                </div>
 
-                                <Row gutter={[8, 8]}>
-                                    <Col span={24}>
+                                <div className="portal-filter-grid">
+                                    <div>
                                         <Input
                                             placeholder="Search school"
                                             value={filters.school}
                                             onChange={(event) => onFilterChange({ school: event.target.value })}
                                         />
-                                    </Col>
-                                    <Col span={12}>
+                                    </div>
+                                    <div>
                                         <Input
                                             placeholder="Semester"
                                             value={filters.semester}
                                             onChange={(event) => onFilterChange({ semester: event.target.value })}
                                         />
-                                    </Col>
-                                    <Col span={12}>
+                                    </div>
+                                    <div>
                                         <Select
                                             className="w-full"
                                             value={filters.status || 'all'}
@@ -220,8 +256,8 @@ export default function ChedSubmissionReviewPage({ submissions, selectedSubmissi
                                                 { label: 'Approved', value: 'approved' },
                                             ]}
                                         />
-                                    </Col>
-                                    <Col span={12}>
+                                    </div>
+                                    <div>
                                         <Select
                                             className="w-full"
                                             value={filters.per_page}
@@ -232,8 +268,8 @@ export default function ChedSubmissionReviewPage({ submissions, selectedSubmissi
                                                 { label: '25 per page', value: 25 },
                                             ]}
                                         />
-                                    </Col>
-                                    <Col span={12}>
+                                    </div>
+                                    <div>
                                         <Button
                                             className="w-full"
                                             onClick={() =>
@@ -242,12 +278,13 @@ export default function ChedSubmissionReviewPage({ submissions, selectedSubmissi
                                         >
                                             Reset filters
                                         </Button>
-                                    </Col>
-                                </Row>
+                                    </div>
+                                </div>
 
                                 <Table
                                     rowKey="id"
                                     dataSource={submissions.data}
+                                    rowClassName={(record: SubmissionRow) => (record.id === selectedSubmission?.id ? 'portal-list-card--active' : '')}
                                     pagination={{
                                         current: submissions.current_page,
                                         pageSize: submissions.per_page,
@@ -264,13 +301,24 @@ export default function ChedSubmissionReviewPage({ submissions, selectedSubmissi
                                             title: 'School',
                                             key: 'school',
                                             render: (_, row: SubmissionRow) => (
-                                                <Space direction="vertical" size={0}>
+                                                <Space direction="vertical" size={2}>
                                                     <Typography.Text strong>
                                                         {row.user.school_name ?? row.user.name}
                                                     </Typography.Text>
-                                                    <Typography.Text className="!text-slate-500">
-                                                        {row.user.school_code ?? row.user.email}
-                                                    </Typography.Text>
+                                                    <div className="portal-inline-meta">
+                                                        <span>{row.user.school_code ?? row.user.email}</span>
+                                                        <strong>{row.students_count} students</strong>
+                                                    </div>
+                                                </Space>
+                                            ),
+                                        },
+                                        {
+                                            title: 'Submitted',
+                                            key: 'submitted',
+                                            render: (_, row: SubmissionRow) => (
+                                                <Space direction="vertical" size={2}>
+                                                    <Typography.Text>{row.submitted_at ? dayjs(row.submitted_at).format('MMM D, YYYY') : 'Pending submit'}</Typography.Text>
+                                                    <Typography.Text className="!text-slate-500">{row.semester}</Typography.Text>
                                                 </Space>
                                             ),
                                         },
@@ -279,7 +327,7 @@ export default function ChedSubmissionReviewPage({ submissions, selectedSubmissi
                                             dataIndex: 'status',
                                             key: 'status',
                                             render: (value: SubmissionRow['status']) => (
-                                                <Tag color={statusColor(value)}>{value.replace('_', ' ').toUpperCase()}</Tag>
+                                                <Tag color={statusColor(value)}>{statusLabel(value)}</Tag>
                                             ),
                                         },
                                         {
@@ -310,156 +358,206 @@ export default function ChedSubmissionReviewPage({ submissions, selectedSubmissi
                             <Space direction="vertical" size={16} className="w-full">
                                 <Card className="!rounded-[24px] !border-white/80 !shadow-lg">
                                     <Space direction="vertical" size={16} className="w-full">
-                                        <div>
+                                        <div className="portal-section-heading">
+                                            <Typography.Text className="portal-section-kicker">Review Panel</Typography.Text>
                                             <Typography.Title level={4} className="!mb-1 !mt-0">
                                                 {selectedSubmission.user.school_name ?? selectedSubmission.user.name}
                                             </Typography.Title>
-                                            <Typography.Text className="!text-slate-500">
+                                            <Typography.Text className="portal-section-note">
                                                 {selectedSubmission.semester} | Submitted {selectedSubmission.submitted_at ? dayjs(selectedSubmission.submitted_at).format('MMM D, YYYY h:mm A') : 'N/A'}
                                             </Typography.Text>
                                         </div>
 
-                                        <Descriptions size="small" bordered column={2}>
-                                            <Descriptions.Item label="Status">
-                                                <Tag color={statusColor(selectedSubmission.status)}>
-                                                    {selectedSubmission.status.replace('_', ' ').toUpperCase()}
-                                                </Tag>
-                                            </Descriptions.Item>
-                                            <Descriptions.Item label="Students">
-                                                {selectedSubmission.students_count}
-                                            </Descriptions.Item>
-                                            <Descriptions.Item label="Valid">
-                                                {selectedSubmission.parsed_summary?.validation?.valid_count ?? 0}
-                                            </Descriptions.Item>
-                                            <Descriptions.Item label="Invalid">
-                                                {selectedSubmission.parsed_summary?.validation?.invalid_count ?? 0}
-                                            </Descriptions.Item>
-                                            <Descriptions.Item label="Reviewed At">
-                                                {selectedSubmission.reviewed_at ? dayjs(selectedSubmission.reviewed_at).format('MMM D, YYYY h:mm A') : 'Not yet'}
-                                            </Descriptions.Item>
-                                            <Descriptions.Item label="Reviewed By">
-                                                {selectedSubmission.reviewer?.name ?? 'N/A'}
-                                            </Descriptions.Item>
-                                        </Descriptions>
+                                        <div className="portal-summary-grid">
+                                            {overviewTiles.map((tile) => (
+                                                <div key={tile.label} className="portal-summary-tile">
+                                                    <span className="portal-summary-label">{tile.label}</span>
+                                                    <div className="portal-summary-value">{tile.value}</div>
+                                                    <div className="portal-summary-meta">{tile.meta}</div>
+                                                </div>
+                                            ))}
+                                        </div>
 
-                                        <Input.TextArea
-                                            rows={3}
-                                            placeholder="CHED review notes"
-                                            value={data.review_notes}
-                                            onChange={(event) => setData('review_notes', event.target.value)}
-                                        />
-
-                                        <Space wrap>
-                                            <Button
-                                                onClick={() => transition('under_review')}
-                                                disabled={selectedSubmission.status !== 'submitted'}
-                                            >
-                                                Move to Under Review
-                                            </Button>
-                                            <Button
-                                                danger
-                                                onClick={() => transition('needs_correction')}
-                                                disabled={!['submitted', 'under_review'].includes(selectedSubmission.status)}
-                                            >
-                                                Request Correction
-                                            </Button>
-                                            <Button
-                                                type="primary"
-                                                onClick={() => transition('approved')}
-                                                disabled={!['submitted', 'under_review'].includes(selectedSubmission.status)}
-                                            >
-                                                Approve
-                                            </Button>
-                                        </Space>
+                                        <div className="portal-chip-row">
+                                            <Tag color={statusColor(selectedSubmission.status)}>{statusLabel(selectedSubmission.status)}</Tag>
+                                            <Tag color="green">{selectedValidation?.valid_count ?? 0} valid</Tag>
+                                            <Tag color="red">{selectedValidation?.invalid_count ?? 0} invalid</Tag>
+                                            <Tag>{selectedValidation?.fuzzy_match_count ?? 0} name variations</Tag>
+                                            <Tag>{selectedSubmission.reviewer?.name ?? 'No reviewer yet'}</Tag>
+                                        </div>
                                     </Space>
                                 </Card>
 
                                 <Card className="!rounded-[24px] !border-white/80 !shadow-lg">
-                                    <Space direction="vertical" size={16} className="w-full">
-                                        <Typography.Title level={4} className="!mb-0 !mt-0">
-                                            Validation results by student
-                                        </Typography.Title>
+                                    <Tabs
+                                        defaultActiveKey="decision"
+                                        items={[
+                                            {
+                                                key: 'decision',
+                                                label: 'Decision',
+                                                children: (
+                                                    <Space direction="vertical" size={16} className="w-full">
+                                                        <div className="portal-section-heading">
+                                                            <Typography.Text className="portal-section-kicker">Decision</Typography.Text>
+                                                            <Typography.Title level={4} className="!mb-0 !mt-0">
+                                                                Review outcome
+                                                            </Typography.Title>
+                                                            <Typography.Text className="portal-section-note">
+                                                                Add notes if needed, then approve or send the submission back for correction.
+                                                            </Typography.Text>
+                                                        </div>
 
-                                        <Table
-                                            rowKey="id"
-                                            dataSource={selectedSubmission.students}
-                                            pagination={{ pageSize: 10 }}
-                                            columns={[
-                                                {
-                                                    title: 'Name',
-                                                    dataIndex: 'full_name',
-                                                    key: 'full_name',
-                                                },
-                                                {
-                                                    title: 'Source',
-                                                    dataIndex: 'source_file',
-                                                    key: 'source_file',
-                                                },
-                                                {
-                                                    title: 'Validation',
-                                                    key: 'validation',
-                                                    render: (_, row: StudentRow) => {
-                                                        const result = validationByStudentId.get(row.id);
-                                                        if (!result) {
-                                                            return <Tag color="default">PENDING</Tag>;
-                                                        }
+                                                        <div className="portal-muted-panel">
+                                                            <div className="portal-inline-meta">
+                                                                <strong>{selectedValidation?.invalid_count ?? 0} invalid</strong>
+                                                                <span>{selectedValidation?.evaluated_count ?? 0} evaluated</span>
+                                                                <span>{selectedValidation?.fuzzy_match_count ?? 0} name variations</span>
+                                                            </div>
+                                                        </div>
 
-                                                        return (
-                                                            <Tag color={result.status === 'valid' ? 'green' : 'red'}>
-                                                                {result.status.toUpperCase()}
-                                                            </Tag>
-                                                        );
-                                                    },
-                                                },
-                                                {
-                                                    title: 'Issues',
-                                                    key: 'issues',
-                                                    render: (_, row: StudentRow) => {
-                                                        const result = validationByStudentId.get(row.id);
-                                                        if (!result || result.issues.length === 0) {
-                                                            return <Typography.Text className="!text-slate-400">None</Typography.Text>;
-                                                        }
+                                                        <Input.TextArea
+                                                            rows={4}
+                                                            placeholder="CHED review notes"
+                                                            value={data.review_notes}
+                                                            onChange={(event) => setData('review_notes', event.target.value)}
+                                                        />
 
-                                                        return (
-                                                            <Space wrap>
-                                                                {result.issues.map((issue, index) => (
-                                                                    <Tag key={`${row.id}-${issue.code ?? 'issue'}-${index}`} color="orange">
-                                                                        {issue.code ?? 'issue'}
-                                                                    </Tag>
-                                                                ))}
-                                                            </Space>
-                                                        );
-                                                    },
-                                                },
-                                                {
-                                                    title: 'Serial Number',
-                                                    key: 'serial_number',
-                                                    render: (_, row: StudentRow) =>
-                                                        row.serial_number?.serial_number ? (
-                                                            <Space direction="vertical" size={0}>
-                                                                <Space size={8}>
-                                                                    <Typography.Text strong>{row.serial_number.serial_number}</Typography.Text>
-                                                                    <Button
-                                                                        type="link"
-                                                                        size="small"
-                                                                        onClick={() => copySerialNumber(row.serial_number!.serial_number)}
-                                                                    >
-                                                                        {copiedSerial === row.serial_number.serial_number ? 'Copied' : 'Copy'}
-                                                                    </Button>
-                                                                </Space>
-                                                                <Typography.Text className="!text-slate-500">
-                                                                    {row.serial_number.issued_at
-                                                                        ? dayjs(row.serial_number.issued_at).format('MMM D, YYYY h:mm A')
-                                                                        : 'Issued'}
-                                                                </Typography.Text>
-                                                            </Space>
-                                                        ) : (
-                                                            <Typography.Text className="!text-slate-400">Not issued</Typography.Text>
-                                                        ),
-                                                },
-                                            ]}
-                                        />
-                                    </Space>
+                                                        <div className="portal-action-bar">
+                                                            <Button
+                                                                onClick={() => transition('under_review')}
+                                                                disabled={selectedSubmission.status !== 'submitted'}
+                                                            >
+                                                                Move to Under Review
+                                                            </Button>
+                                                            <Button
+                                                                danger
+                                                                onClick={() => transition('needs_correction')}
+                                                                disabled={!['submitted', 'under_review'].includes(selectedSubmission.status)}
+                                                            >
+                                                                Request Correction
+                                                            </Button>
+                                                            <Button
+                                                                type="primary"
+                                                                onClick={() => transition('approved')}
+                                                                disabled={!['submitted', 'under_review'].includes(selectedSubmission.status)}
+                                                            >
+                                                                Approve
+                                                            </Button>
+                                                        </div>
+                                                    </Space>
+                                                ),
+                                            },
+                                            {
+                                                key: 'students',
+                                                label: 'Student Results',
+                                                children: (
+                                                    <Space direction="vertical" size={16} className="w-full">
+                                                        <div className="portal-section-heading">
+                                                            <Typography.Text className="portal-section-kicker">Validation Detail</Typography.Text>
+                                                            <Typography.Title level={4} className="!mb-0 !mt-0">
+                                                                Student validation results
+                                                            </Typography.Title>
+                                                            <Typography.Text className="portal-section-note">
+                                                                Review invalid rows first, then inspect source and serial issuance state per student.
+                                                            </Typography.Text>
+                                                        </div>
+
+                                                        <div className="portal-chip-row">
+                                                            <Tag color="green">Valid rows: {selectedValidation?.valid_count ?? 0}</Tag>
+                                                            <Tag color="red">Invalid rows: {selectedValidation?.invalid_count ?? 0}</Tag>
+                                                            <Tag color="blue">Evaluated: {selectedValidation?.evaluated_count ?? 0}</Tag>
+                                                        </div>
+
+                                                        <Table
+                                                            rowKey="id"
+                                                            dataSource={selectedSubmission.students}
+                                                            pagination={{ pageSize: 10 }}
+                                                            columns={[
+                                                                {
+                                                                    title: 'Name',
+                                                                    dataIndex: 'full_name',
+                                                                    key: 'full_name',
+                                                                },
+                                                                {
+                                                                    title: 'Program',
+                                                                    dataIndex: 'program',
+                                                                    key: 'program',
+                                                                    render: (value?: string | null) => value ?? 'N/A',
+                                                                },
+                                                                {
+                                                                    title: 'Source',
+                                                                    dataIndex: 'source_file',
+                                                                    key: 'source_file',
+                                                                },
+                                                                {
+                                                                    title: 'Validation',
+                                                                    key: 'validation',
+                                                                    render: (_, row: StudentRow) => {
+                                                                        const result = validationByStudentId.get(row.id);
+                                                                        if (!result) {
+                                                                            return <Tag color="default">PENDING</Tag>;
+                                                                        }
+
+                                                                        return (
+                                                                            <Tag color={result.status === 'valid' ? 'green' : 'red'}>
+                                                                                {result.status.toUpperCase()}
+                                                                            </Tag>
+                                                                        );
+                                                                    },
+                                                                },
+                                                                {
+                                                                    title: 'Issues',
+                                                                    key: 'issues',
+                                                                    render: (_, row: StudentRow) => {
+                                                                        const result = validationByStudentId.get(row.id);
+                                                                        if (!result || result.issues.length === 0) {
+                                                                            return <Typography.Text className="!text-slate-400">None</Typography.Text>;
+                                                                        }
+
+                                                                        return (
+                                                                            <div className="portal-issue-stack">
+                                                                                {result.issues.map((issue, index) => (
+                                                                                    <Tag key={`${row.id}-${issue.code ?? 'issue'}-${index}`} color="orange">
+                                                                                        {issue.code ?? 'issue'}
+                                                                                    </Tag>
+                                                                                ))}
+                                                                            </div>
+                                                                        );
+                                                                    },
+                                                                },
+                                                                {
+                                                                    title: 'Serial Number',
+                                                                    key: 'serial_number',
+                                                                    render: (_, row: StudentRow) =>
+                                                                        row.serial_number?.serial_number ? (
+                                                                            <Space direction="vertical" size={0}>
+                                                                                <Space size={8}>
+                                                                                    <Typography.Text strong>{row.serial_number.serial_number}</Typography.Text>
+                                                                                    <Button
+                                                                                        type="link"
+                                                                                        size="small"
+                                                                                        onClick={() => copySerialNumber(row.serial_number!.serial_number)}
+                                                                                    >
+                                                                                        {copiedSerial === row.serial_number.serial_number ? 'Copied' : 'Copy'}
+                                                                                    </Button>
+                                                                                </Space>
+                                                                                <Typography.Text className="!text-slate-500">
+                                                                                    {row.serial_number.issued_at
+                                                                                        ? dayjs(row.serial_number.issued_at).format('MMM D, YYYY h:mm A')
+                                                                                        : 'Issued'}
+                                                                                </Typography.Text>
+                                                                            </Space>
+                                                                        ) : (
+                                                                            <Typography.Text className="!text-slate-400">Not issued</Typography.Text>
+                                                                        ),
+                                                                },
+                                                            ]}
+                                                        />
+                                                    </Space>
+                                                ),
+                                            },
+                                        ]}
+                                    />
                                 </Card>
                             </Space>
                         ) : (

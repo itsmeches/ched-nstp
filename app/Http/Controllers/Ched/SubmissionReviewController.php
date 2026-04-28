@@ -23,6 +23,8 @@ class SubmissionReviewController extends Controller
 
     public function index(Request $request): Response
     {
+        $reviewableStatuses = ['submitted', 'under_review', 'needs_correction', 'approved'];
+
         $filters = [
             'school' => $request->string('school')->toString(),
             'semester' => $request->string('semester')->toString(),
@@ -33,7 +35,7 @@ class SubmissionReviewController extends Controller
         $submissionQuery = Submission::query()
             ->with('user:id,name,email,school_name,school_code')
             ->withCount('students')
-            ->whereIn('status', ['submitted', 'under_review', 'needs_correction', 'approved'])
+            ->whereIn('status', $reviewableStatuses)
             ->latest();
 
         if ($filters['school'] !== '') {
@@ -49,7 +51,7 @@ class SubmissionReviewController extends Controller
             $submissionQuery->where('semester', 'like', '%'.$filters['semester'].'%');
         }
 
-        if (in_array($filters['status'], ['submitted', 'under_review', 'needs_correction', 'approved'], true)) {
+        if (in_array($filters['status'], $reviewableStatuses, true)) {
             $submissionQuery->where('status', $filters['status']);
         }
 
@@ -65,6 +67,7 @@ class SubmissionReviewController extends Controller
 
         $selectedSubmission = $selectedSubmissionId
             ? Submission::query()
+                ->whereIn('status', $reviewableStatuses)
                 ->with([
                     'user:id,name,email,school_name,school_code',
                     'reviewer:id,name,email',
@@ -73,6 +76,18 @@ class SubmissionReviewController extends Controller
                 ])
                 ->find($selectedSubmissionId)
             : null;
+
+        if ($selectedSubmission === null && $submissions->getCollection()->isNotEmpty()) {
+            $selectedSubmission = Submission::query()
+                ->whereIn('status', $reviewableStatuses)
+                ->with([
+                    'user:id,name,email,school_name,school_code',
+                    'reviewer:id,name,email',
+                    'students' => fn ($query) => $query->with('serialNumber')->orderBy('full_name'),
+                    'validationResults',
+                ])
+                ->find($submissions->getCollection()->first()->id);
+        }
 
         return Inertia::render('Ched/Submissions/Index', [
             'submissions' => $submissions,
