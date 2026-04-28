@@ -51,6 +51,7 @@ type Submission = {
             invalid_count: number;
             fuzzy_match_count: number;
             evaluated_count: number;
+            issue_counts?: Record<string, number>;
         };
     };
     parsed_at?: string | null;
@@ -387,6 +388,27 @@ export default function SchoolSubmissionPage({ submissions, school }: Submission
                                                         {record.serial_numbers_count ?? 0}
                                                     </Descriptions.Item>
                                                 </Descriptions>
+
+                                                {Object.keys(record.parsed_summary?.validation?.issue_counts ?? {}).length > 0 ? (
+                                                    <Card size="small" className="!border-slate-200">
+                                                        <Space direction="vertical" size={8} className="w-full">
+                                                            <Typography.Text strong>Invalid summary by issue</Typography.Text>
+                                                            <div className="portal-chip-row">
+                                                                {Object.entries(record.parsed_summary?.validation?.issue_counts ?? {}).map(([issueCode, count]) => (
+                                                                    <Tag key={`${record.id}-${issueCode}`} color="red">
+                                                                        {issueCode} ({count})
+                                                                    </Tag>
+                                                                ))}
+                                                            </div>
+                                                        </Space>
+                                                    </Card>
+                                                ) : null}
+
+                                                <div className="portal-action-bar">
+                                                    <Button href={route('school.submissions.report', { submission: record.id })}>
+                                                        Download Parser Report
+                                                    </Button>
+                                                </div>
 
                                                 {(record.serial_numbers_count ?? 0) > 0 ? (
                                                     <Table

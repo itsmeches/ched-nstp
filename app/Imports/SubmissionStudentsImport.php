@@ -89,7 +89,6 @@ class SubmissionStudentsImport implements SkipsEmptyRows, ToCollection, WithCalc
 
             if ($student === null) {
                 $this->skippedRows++;
-                $this->addParseError('Skipped a row because the student name could not be resolved.');
                 continue;
             }
 
@@ -102,6 +101,8 @@ class SubmissionStudentsImport implements SkipsEmptyRows, ToCollection, WithCalc
                     $student['student_number'] ?? $student['full_name'],
                     $this->sourceFile,
                 ));
+
+                continue;
             }
 
             if ($studentKey !== null) {
@@ -265,7 +266,7 @@ class SubmissionStudentsImport implements SkipsEmptyRows, ToCollection, WithCalc
 
         if ($missingFields !== []) {
             $this->addParseError(sprintf(
-                'Row %s skipped: missing or invalid required fields (%s).',
+                'Row %s has missing or invalid fields (%s).',
                 $rowNumber ?? 'N/A',
                 implode(', ', $missingFields),
             ));
@@ -286,7 +287,6 @@ class SubmissionStudentsImport implements SkipsEmptyRows, ToCollection, WithCalc
                 ));
             }
 
-            return null;
         }
 
         return [

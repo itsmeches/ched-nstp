@@ -17,6 +17,11 @@ class SubmissionPolicy
         return $user->canSubmitNstpFiles();
     }
 
+    public function view(User $user, Submission $submission): bool
+    {
+        return $user->id === $submission->user_id;
+    }
+
     public function update(User $user, Submission $submission): bool
     {
         return $user->id === $submission->user_id

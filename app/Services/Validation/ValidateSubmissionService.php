@@ -34,6 +34,7 @@ class ValidateSubmissionService
         $validCount = 0;
         $invalidCount = 0;
         $fuzzyMatchedCount = 0;
+        $issueCounts = [];
 
         foreach ($students as $student) {
             $key = $this->matchKey($student->full_name, $student->birthdate?->format('Y-m-d'));
@@ -109,6 +110,11 @@ class ValidateSubmissionService
                 $validCount++;
             } else {
                 $invalidCount++;
+
+                foreach ($issues as $issue) {
+                    $code = (string) ($issue['code'] ?? 'unknown_issue');
+                    $issueCounts[$code] = ($issueCounts[$code] ?? 0) + 1;
+                }
             }
 
             $records[] = [
@@ -130,6 +136,9 @@ class ValidateSubmissionService
             'invalid_count' => $invalidCount,
             'fuzzy_match_count' => $fuzzyMatchedCount,
             'evaluated_count' => $students->count(),
+            'issue_counts' => collect($issueCounts)
+                ->sortDesc()
+                ->all(),
         ];
     }
 

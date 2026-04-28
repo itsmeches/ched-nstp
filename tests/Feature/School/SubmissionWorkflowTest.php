@@ -68,7 +68,7 @@ class SubmissionWorkflowTest extends TestCase
         ]);
     }
 
-    public function test_duplicate_students_are_retained_and_reported_in_summary(): void
+    public function test_duplicate_students_are_skipped_and_reported_in_summary(): void
     {
         Storage::fake('local');
 
@@ -88,7 +88,7 @@ class SubmissionWorkflowTest extends TestCase
 
         $submission = Submission::query()->firstOrFail();
 
-        $this->assertSame(3, Student::query()->count());
+        $this->assertSame(2, Student::query()->count());
         $this->assertSame(1, data_get($submission->parsed_summary, 'overall.duplicate_rows'));
         $this->assertSame(1, data_get($submission->parsed_summary, 'files.nstp_1_enrollment.duplicate_rows'));
         $this->assertNotEmpty(data_get($submission->parsed_summary, 'files.nstp_1_enrollment.parse_errors'));

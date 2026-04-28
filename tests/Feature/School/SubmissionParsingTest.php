@@ -71,4 +71,54 @@ class SubmissionParsingTest extends TestCase
             'email_address' => 'ana@example.com',
         ]);
     }
+
+    public function test_rows_with_blank_fields_are_imported_and_reported_as_parse_issues(): void
+    {
+        Storage::fake('local');
+
+        $user = User::factory()->create();
+
+        $file = UploadedFile::fake()->createWithContent(
+            'nstp-blank-fields.csv',
+            implode("\n", [
+                'Republic of the Philippines',
+                'Commission on Higher Education',
+                'NSTP 1 Enrollment List',
+                'No.,Student No.,Surname,First Name,Middle Name,Program,Sex,Birthdate,Street / Barangay,Municipality / City,Province,Contact Number,Email Address',
+                '1,2026-7001,,John,Reyes,BSIT,,2004-02-10,Barangay Uno,Calamba City,Laguna,09170000001,john@example.com',
+                '2,2026-7002,Garcia,Ana,Lopez,BSBA,Female,,Barangay Dos,Santa Rosa City,Laguna,09170000002,ana@example.com',
+            ]),
+        );
+
+        $response = $this->actingAs($user)->post(route('school.submissions.store'), [
+            'semester' => '2026 - Midyear',
+            'status' => 'draft',
+            'nstp_1_enrollment' => $file,
+        ]);
+
+        $response->assertRedirect(route('school.submissions.index', absolute: false));
+
+        $submission = Submission::query()->firstOrFail();
+
+        $this->assertSame(2, Student::query()->count());
+        $this->assertSame(2, data_get($submission->parsed_summary, 'overall.student_count'));
+        $this->assertSame(2, data_get($submission->parsed_summary, 'overall.parse_error_count'));
+        $this->assertDatabaseHas('students', [
+            'submission_id' => $submission->id,
+            'student_number' => '2026-7001',
+            'surname' => null,
+            'first_name' => 'JOHN',
+            'middle_name' => 'REYES',
+            'full_name' => 'JOHN REYES',
+            'sex' => null,
+        ]);
+        $this->assertDatabaseHas('students', [
+            'submission_id' => $submission->id,
+            'student_number' => '2026-7002',
+            'surname' => 'GARCIA',
+            'first_name' => 'ANA',
+            'middle_name' => 'LOPEZ',
+            'birthdate' => null,
+        ]);
+    }
 }

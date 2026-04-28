@@ -55,6 +55,7 @@ Route::middleware(['auth', 'verified', 'role:school'])->prefix('school')->name('
         Route::get('/submissions', [SchoolSubmissionController::class, 'index'])->name('submissions.index');
         Route::post('/submissions', [SchoolSubmissionController::class, 'store'])->name('submissions.store');
         Route::patch('/submissions/{submission}/submit', [SchoolSubmissionController::class, 'submit'])->name('submissions.submit');
+        Route::get('/submissions/{submission}/parser-report', [SchoolSubmissionController::class, 'downloadParserReport'])->name('submissions.report');
     });
 });
 

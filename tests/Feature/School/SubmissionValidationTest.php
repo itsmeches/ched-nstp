@@ -150,6 +150,54 @@ class SubmissionValidationTest extends TestCase
         $this->assertDatabaseCount('submissions', 0);
     }
 
+    public function test_validation_summary_groups_invalid_issue_counts(): void
+    {
+        Storage::fake('local');
+
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post(route('school.submissions.store'), [
+            'semester' => '2026 - Summer',
+            'status' => 'draft',
+            'nstp_1_enrollment' => $this->csvUpload('nstp1-summary.csv', [
+                ['1', '2026-9101', 'Santos', 'Maria', 'Lopez', 'BSIT', 'Female', '2004-02-10', 'Barangay Uno', 'Calamba', 'Laguna', '09170001001', 'maria@example.com'],
+            ]),
+        ]);
+
+        $response->assertRedirect(route('school.submissions.index', absolute: false));
+
+        $submission = Submission::query()->firstOrFail();
+
+        $this->assertSame(1, data_get($submission->parsed_summary, 'validation.issue_counts.missing_nstp_2'));
+        $this->assertSame(1, data_get($submission->parsed_summary, 'validation.issue_counts.missing_form_2b'));
+    }
+
+    public function test_school_user_can_download_parser_report(): void
+    {
+        Storage::fake('local');
+
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post(route('school.submissions.store'), [
+            'semester' => '2026 - Summer',
+            'status' => 'draft',
+            'nstp_1_enrollment' => $this->csvUpload('nstp1-report.csv', [
+                ['1', '2026-9201', 'Santos', 'Maria', 'Lopez', 'BSIT', 'Female', '2004-02-10', 'Barangay Uno', 'Calamba', 'Laguna', '09170002001', 'maria-report@example.com'],
+            ]),
+        ]);
+
+        $response->assertRedirect(route('school.submissions.index', absolute: false));
+
+        $submission = Submission::query()->firstOrFail();
+
+        $downloadResponse = $this->actingAs($user)->get(route('school.submissions.report', ['submission' => $submission->id]));
+
+        $downloadResponse->assertOk();
+        $downloadResponse->assertDownload(sprintf('parser-report-%s-%s.csv', $submission->id, '2026-summer'));
+        $this->assertStringContainsString('"Report Type","Source File","Row Number","Student Number","Full Name",Status,"Issue Code",Message', $downloadResponse->streamedContent());
+        $this->assertStringContainsString('validation,nstp_1_enrollment,1,2026-9201,"SANTOS, MARIA LOPEZ",invalid,missing_nstp_2,"Student was not found in NSTP 2."', $downloadResponse->streamedContent());
+    }
+
     /**
      * @param list<list<string>> $rows
      */
